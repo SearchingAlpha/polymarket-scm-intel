@@ -1,0 +1,149 @@
+keywords:
+  tariffs:
+    - "tariff"
+    - "tariffs"
+    - "trade war"
+    - "trade deal"
+    - "IEEPA"
+    - "customs"
+    - "import duty"
+    - "export"
+    - "import tax"
+    - "reciprocal tariff"
+  geopolitical:
+    - "Iran"
+    - "Hormuz"
+    - "Red Sea"
+    - "Houthi"
+    - "conflict"
+    - "war"
+    - "military"
+    - "sanctions"
+    - "strait"
+    - "blockade"
+  trade_policy:
+    - "China"
+    - "trade"
+    - "USMCA"
+    - "NAFTA"
+    - "WTO"
+    - "embargo"
+    - "EU tariff"
+    - "trade agreement"
+    - "Section 301"
+    - "Section 232"
+  labor_ports:
+    - "port strike"
+    - "dock"
+    - "ILA"
+    - "longshoremen"
+    - "shipping"
+    - "labor"
+    - "dockworkers"
+  elections:
+    - "election"
+    - "president"
+    - "trade policy"
+
+categories:
+  tariffs_us_china:
+    description: "US-China tariff rate and trade war contracts"
+    keywords: ["tariff", "China", "trade war", "IEEPA", "Section 301", "Section 232"]
+    freight_indicators:
+      - name: "FBX01"
+        description: "China/East Asia to US West Coast"
+      - name: "FBX03"
+        description: "China/East Asia to US East Coast"
+    causal_logic: "Tariff escalation drives front-loading of imports or rerouting, causing container rate spikes"
+
+  iran_hormuz:
+    description: "Iran conflict and Strait of Hormuz risk contracts"
+    keywords: ["Iran", "Hormuz", "strait", "military strike", "sanctions"]
+    freight_indicators:
+      - name: "BDI"
+        description: "Baltic Dry Index (bulk commodities)"
+    causal_logic: "Conflict probability increases Strait of Hormuz closure risk, forcing rerouting around Cape of Good Hope"
+
+  red_sea_houthi:
+    description: "Red Sea conflict and Houthi attack contracts"
+    keywords: ["Red Sea", "Houthi", "Suez", "Yemen"]
+    freight_indicators:
+      - name: "FBX11"
+        description: "China/East Asia to North Europe"
+      - name: "FBX_GLOBAL"
+        description: "FBX Global Container Index"
+    causal_logic: "Attack probability drives Suez Canal avoidance, forcing longer Cape of Good Hope routes"
+
+  eu_tariffs:
+    description: "EU and European trade policy contracts"
+    keywords: ["EU", "Europe", "European", "EUDR", "trade agreement"]
+    freight_indicators:
+      - name: "FBX11"
+        description: "China/East Asia to North Europe"
+    causal_logic: "EU trade disruption changes European import patterns and Asia-Europe shipping demand"
+
+  us_trade_policy:
+    description: "General US trade policy and Supreme Court rulings"
+    keywords: ["Supreme Court", "trade policy", "USMCA", "WTO", "trade deal"]
+    freight_indicators:
+      - name: "FBX_GLOBAL"
+        description: "FBX Global Container Index"
+      - name: "FBX01"
+        description: "China/East Asia to US West Coast"
+    causal_logic: "Legal and policy uncertainty drives importer hedging behavior and rate volatility"
+
+  labor_disruption:
+    description: "Port strikes and labor disruption contracts"
+    keywords: ["port strike", "ILA", "longshoremen", "dock workers"]
+    freight_indicators:
+      - name: "FBX03"
+        description: "China/East Asia to US East Coast"
+      - name: "FBX_GLOBAL"
+        description: "FBX Global Container Index"
+    causal_logic: "Port strike risk drives front-loading before strikes and rerouting around affected ports"
+
+freight_indexes:
+  BDI:
+    name: "Baltic Dry Index"
+    source: "Baltic Exchange"
+    frequency: "daily"
+    description: "Benchmark for dry bulk commodity shipping rates"
+    filename: "bdi.csv"
+    expected_columns: ["date", "value"]
+    manual_download_url: "https://tradingeconomics.com/commodity/baltic"
+
+  FBX_GLOBAL:
+    name: "FBX Global Container Index"
+    source: "Freightos Baltic Exchange"
+    frequency: "weekly"
+    description: "Global container freight rate composite"
+    filename: "fbx_global.csv"
+    expected_columns: ["date", "value"]
+    manual_download_url: "https://en.macromicro.me/series/17502/fbx-global-container-index-weekly"
+
+  FBX01:
+    name: "FBX01 China/East Asia to US West Coast"
+    source: "Freightos Baltic Exchange"
+    frequency: "weekly"
+    description: "Container freight rates from China/East Asia to US West Coast"
+    filename: "fbx01.csv"
+    expected_columns: ["date", "value"]
+    manual_download_url: "https://www.freightos.com/freight-resources/fbx-freightos-baltic-exchange-index/"
+
+  FBX03:
+    name: "FBX03 China/East Asia to US East Coast"
+    source: "Freightos Baltic Exchange"
+    frequency: "weekly"
+    description: "Container freight rates from China/East Asia to US East Coast"
+    filename: "fbx03.csv"
+    expected_columns: ["date", "value"]
+    manual_download_url: "https://www.freightos.com/freight-resources/fbx-freightos-baltic-exchange-index/"
+
+  FBX11:
+    name: "FBX11 China/East Asia to North Europe"
+    source: "Freightos Baltic Exchange"
+    frequency: "weekly"
+    description: "Container freight rates from China/East Asia to North Europe"
+    filename: "fbx11.csv"
+    expected_columns: ["date", "value"]
+    manual_download_url: "https://www.freightos.com/freight-resources/fbx-freightos-baltic-exchange-index/"

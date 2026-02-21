@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(\"C:/Users/kekoi/Projects/operations_research/polymarket-scm-intel/create_notebooks.py\":*)",
+      "Bash(printf:*)",
+      "Bash(python -c:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

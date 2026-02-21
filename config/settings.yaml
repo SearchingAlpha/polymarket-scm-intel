@@ -1,0 +1,48 @@
+api:
+  gamma:
+    base_url: "https://gamma-api.polymarket.com"
+    rate_limit_per_minute: 100
+    timeout: 30
+    max_retries: 3
+    retry_backoff_base: 2.0
+  clob:
+    base_url: "https://clob.polymarket.com"
+    rate_limit_per_minute: 100
+    timeout: 30
+    max_retries: 3
+    retry_backoff_base: 2.0
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  freight_dir: "data/freight"
+  cache_ttl_hours: 24  # Re-fetch raw data if older than this
+
+output:
+  figures_dir: "output/figures"
+  report_path: "output/report.md"
+  figure_dpi: 300
+  figure_formats:
+    - "png"
+    - "svg"
+
+analysis:
+  study_period:
+    start: "2024-01-01"
+    end: "2026-02-21"
+  event_detection:
+    probability_shift_threshold: 0.10     # 10 percentage points
+    zscore_threshold: 2.0                 # Standard deviations for rate-of-change detection
+    rolling_window_days: 7
+  correlation:
+    lag_range_days: 30                    # Test lags from -30 to +30
+    granger_max_lag: 14                   # Max lag for Granger causality test
+    min_observations: 30                  # Minimum overlapping data points required
+  event_study:
+    pre_event_window_days: 5
+    post_event_window_days: 30
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "pipeline.log"
