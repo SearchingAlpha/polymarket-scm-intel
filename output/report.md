@@ -1,6 +1,6 @@
 # Polymarket Supply Chain Intelligence - Analysis Report
 
-*Generated: 2026-02-21 21:07 UTC*
+*Generated: 2026-02-21 21:49 UTC*
 
 ---
 
@@ -11,9 +11,9 @@
 - **Historical (closed) markets:** 23023
 - **Markets with timeseries data:** 5790
 - **Significant probability shift events detected:** 3614
-- **Market-freight pairings analysed:** 0
-- **Statistically significant correlations (p < 0.05):** 0
-- **Granger causality tests run:** 0
+- **Market-freight pairings analysed:** 100
+- **Statistically significant correlations (p < 0.05):** 94
+- **Granger causality tests run:** 5
 - **Significant Granger results:** 0
 - **Assessments in this report (combined):** 555
 
@@ -30,16 +30,26 @@
 ## Key Findings
 
 ### Cross-Correlation Results
+- **Will the U.S. tariff rate on China be between 25% ** × BDI: r=0.512, lag=-23d (Freight leads, significant)
+- **Will Trump lower tariffs on Canada by July 31?** × FBX03: r=0.410, lag=18d (Polymarket LEADS, significant)
+- **Will the U.S. tariff rate on China be between 25% ** × FBX01: r=0.392, lag=15d (Polymarket LEADS, significant)
+- **Will the U.S. tariff rate on China be between 25% ** × FBX03: r=0.391, lag=-27d (Freight leads, significant)
+- **Will the U.S. agree to a trade deal with Vietnam b** × FBX01: r=0.388, lag=8d (Polymarket LEADS, significant)
 
 ---
 
 ### Granger Causality
+- **Will Trump lower tariffs on Canada by December 31?** → FBX_GLOBAL: p=0.1316 at lag=3d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX01: p=0.1342 at lag=7d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → BDI: p=0.2300 at lag=1d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX11: p=0.2566 at lag=8d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX03: p=0.2779 at lag=1d (not significant)
 
 ---
 
 ## Supply Chain Intelligence Alerts
 
-*Generated 2026-02-21 21:07 UTC*
+*Generated 2026-02-21 21:49 UTC*
 
 Top 5 highest-impact signals:
 
@@ -174,7 +184,7 @@ Top 5 highest-impact signals:
 ---
 
 ## Caveats and Limitations
-1. **Synthetic freight data**: Where live freight data was unavailable, synthetic data was generated for pipeline validation. Final analysis requires real BDI/FBX data.
+1. **Synthetic freight data**: Synthetic data was generated for BDI, FBX01, FBX03, FBX11, FBX_GLOBAL. Final analysis requires real BDI/FBX data.
 2. **Correlation ≠ causation**: Statistical relationships documented here are consistent with the leading indicator thesis but require further validation.
 3. **Sample size**: Some pairings have limited overlapping observations, reducing statistical power.
 4. **Market selection bias**: Markets were selected by keyword matching; some relevant markets may be missed.
