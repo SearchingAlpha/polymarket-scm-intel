@@ -63,6 +63,9 @@ class ImpactAssessment:
     category: Optional[str] = None
     correlation_strength: Optional[float] = None
     optimal_lag_days: Optional[int] = None
+    # True if the underlying market has resolved (closed); used to split
+    # backtesting report from forward-looking report.
+    is_resolved: bool = False
 
     def to_dict(self) -> Dict:
         return {
@@ -84,6 +87,7 @@ class ImpactAssessment:
             "category": self.category,
             "correlation_strength": self.correlation_strength,
             "optimal_lag_days": self.optimal_lag_days,
+            "is_resolved": self.is_resolved,
         }
 
 
@@ -349,6 +353,13 @@ class ImpactMapper:
         category = self._get_category(event.market_id, markets_df)
         template = _IMPACT_TEMPLATES.get(category, _DEFAULT_TEMPLATE)
 
+        # Determine whether the market has resolved (closed) — used to route
+        # assessments into the backtesting vs forward-looking report.
+        row = markets_df[markets_df["market_id"].astype(str) == str(event.market_id)]
+        is_resolved = (
+            not row.empty and str(row.iloc[0].get("status", "")).lower() == "closed"
+        )
+
         is_up = event.direction == "up"
         impact_key = "up_impact" if is_up else "down_impact"
         range_key = "up_range" if is_up else "down_range"
@@ -395,6 +406,7 @@ class ImpactMapper:
             category=category,
             correlation_strength=corr,
             optimal_lag_days=lag,
+            is_resolved=is_resolved,
         )
 
     def generate_assessments(
@@ -489,4 +501,59 @@ class ImpactMapper:
 
             lines.append("\n---\n")
 
+        return "\n".join(lines)
+
+    def generate_backtesting_report_section(
+        self,
+        assessments: List[ImpactAssessment],
+        top_n: int = 10,
+    ) -> str:
+        """
+        Report section covering resolved (closed) markets only.
+
+        These events have already happened and the freight outcome is
+        observable, making them suitable for validating the leading-indicator
+        thesis.
+        """
+        historical = [a for a in assessments if a.is_resolved]
+        lines = [
+            "## Backtesting: Historical Signal Validation\n",
+            f"*{len(historical)} assessments from resolved markets*\n",
+            "These probability shifts occurred on **closed / resolved** Polymarket contracts. "
+            "The real-world outcomes are known, enabling direct comparison of prediction-market "
+            "signals against subsequent freight rate movements.\n",
+        ]
+        if not historical:
+            lines.append("*No resolved-market assessments available.*\n")
+            return "\n".join(lines)
+
+        lines.append(self.generate_report_section(historical, top_n=top_n))
+        return "\n".join(lines)
+
+    def generate_forward_looking_report_section(
+        self,
+        assessments: List[ImpactAssessment],
+        top_n: int = 10,
+    ) -> str:
+        """
+        Report section covering active (unresolved) markets only.
+
+        These are live intelligence signals: outcomes are not yet known and
+        the probability shifts represent the market's current best estimate
+        of future events — giving supply chain teams advance warning.
+        """
+        active = [a for a in assessments if not a.is_resolved]
+        lines = [
+            "## Forward-Looking: Live Supply Chain Intelligence\n",
+            f"*{len(active)} assessments from active markets*\n",
+            "These probability shifts are on **active / open** Polymarket contracts. "
+            "Outcomes are not yet determined. Each assessment represents the market's "
+            "current probability-weighted view of near-term supply chain risk, translated "
+            "into actionable freight and procurement intelligence.\n",
+        ]
+        if not active:
+            lines.append("*No active-market assessments available.*\n")
+            return "\n".join(lines)
+
+        lines.append(self.generate_report_section(active, top_n=top_n))
         return "\n".join(lines)

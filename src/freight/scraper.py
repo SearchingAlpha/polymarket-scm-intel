@@ -141,8 +141,9 @@ def _generate_synthetic_bdi() -> pd.DataFrame:
     logger.warning("Generating SYNTHETIC BDI data for development purposes.")
     np.random.seed(42)
 
-    start = pd.Timestamp("2024-01-01")
-    end = pd.Timestamp("2026-02-21")
+    settings = _load_settings()
+    start = pd.Timestamp(settings["analysis"]["study_period"]["start"])
+    end = pd.Timestamp(settings["analysis"]["study_period"]["end"])
     dates = pd.bdate_range(start, end)
 
     # Random walk with mean reversion around 1500
@@ -167,8 +168,9 @@ def _generate_synthetic_fbx(index_name: str, base_value: float, volatility: floa
     logger.warning("Generating SYNTHETIC %s data for development purposes.", index_name)
     np.random.seed(hash(index_name) % (2**32))
 
-    start = pd.Timestamp("2024-01-01")
-    end = pd.Timestamp("2026-02-21")
+    settings = _load_settings()
+    start = pd.Timestamp(settings["analysis"]["study_period"]["start"])
+    end = pd.Timestamp(settings["analysis"]["study_period"]["end"])
     dates = pd.date_range(start, end, freq="W-FRI")
 
     n = len(dates)

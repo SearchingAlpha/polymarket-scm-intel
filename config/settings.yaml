@@ -28,8 +28,11 @@ output:
 
 analysis:
   study_period:
-    start: "2024-01-01"
+    start: "2023-01-01"
     end: "2026-02-21"
+  # Events on or before this date are treated as historical (backtesting).
+  # Events after this date are forward-looking (live predictions).
+  backtest_cutoff: "2025-12-31"
   event_detection:
     probability_shift_threshold: 0.10     # 10 percentage points
     zscore_threshold: 2.0                 # Standard deviations for rate-of-change detection

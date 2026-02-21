@@ -6,6 +6,7 @@ For binary Yes/No markets only the "Yes" token is retained
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -105,6 +106,7 @@ class TimeseriesFetcher:
         title: str,
         clob_token_ids: List[str],
         interval: str = "max",
+        start_ts: Optional[int] = None,
     ) -> Optional[pd.DataFrame]:
         """
         Fetch and return daily probability series for a single market.
@@ -116,6 +118,7 @@ class TimeseriesFetcher:
             title: Human-readable title (for labelling).
             clob_token_ids: List of CLOB token IDs for this market.
             interval: CLOB API interval parameter.
+            start_ts: Optional Unix timestamp; only fetch data on or after this time.
 
         Returns:
             DataFrame with columns [date, probability, market_id, market_title],
@@ -129,7 +132,7 @@ class TimeseriesFetcher:
         token_id = clob_token_ids[0]
         logger.info("Fetching history for market %s (token %s) …", market_id, token_id)
 
-        history = self.client.get_prices_history(token_id, interval=interval)
+        history = self.client.get_prices_history(token_id, interval=interval, start_ts=start_ts)
         if not history:
             logger.warning("No price history returned for market %s.", market_id)
             return None
@@ -154,15 +157,25 @@ class TimeseriesFetcher:
         markets_df: Optional[pd.DataFrame] = None,
         interval: str = "max",
         force_refresh: bool = False,
+        start_ts: Optional[int] = None,
+        max_workers: int = 8,
     ) -> Dict[str, pd.DataFrame]:
         """
         Fetch daily probability timeseries for all discovered markets.
+
+        Fetches are issued in parallel (``max_workers`` threads) while the
+        shared ``RateLimiter`` inside the client serialises the actual HTTP
+        calls, hiding network latency and cutting wall-clock time significantly.
 
         Args:
             markets_df: Pre-loaded DataFrame of discovered markets. If None,
                         loads from the saved CSV.
             interval: CLOB API interval.
             force_refresh: If True, re-fetch even if cached CSV exists.
+            start_ts: Optional Unix timestamp; only request data on or after
+                      this point (passed directly to the CLOB ``startTs`` param).
+            max_workers: Thread pool size. 8 is a safe default that saturates
+                         the 100 req/min rate limit without overloading the API.
 
         Returns:
             Dict mapping market_id → daily probability DataFrame.
@@ -172,25 +185,57 @@ class TimeseriesFetcher:
 
         logger.info("Fetching timeseries for %d markets …", len(markets_df))
 
+        # Separate cached from markets that need a network call
         timeseries: Dict[str, pd.DataFrame] = {}
+        to_fetch: List[Dict] = []
+
         for _, row in markets_df.iterrows():
             market_id = str(row["market_id"])
-            title = str(row["title"])
-            clob_ids = row["clob_token_ids"]
-
-            # Check for cached processed CSV
             cache_path = self.processed_dir / f"ts_{market_id}.csv"
             if cache_path.exists() and not force_refresh:
                 logger.debug("Loading cached timeseries for %s", market_id)
                 df = pd.read_csv(cache_path, parse_dates=["date"])
                 df["date"] = df["date"].dt.date
                 timeseries[market_id] = df
-                continue
+            else:
+                to_fetch.append({
+                    "market_id": market_id,
+                    "title": str(row["title"]),
+                    "clob_ids": row["clob_token_ids"],
+                })
 
-            df = self.fetch_for_market(market_id, title, clob_ids, interval=interval)
-            if df is not None and not df.empty:
-                df.to_csv(cache_path, index=False)
-                timeseries[market_id] = df
+        logger.info(
+            "%d markets loaded from cache; %d require API calls.",
+            len(timeseries),
+            len(to_fetch),
+        )
+
+        if not to_fetch:
+            return timeseries
+
+        def _fetch_one(item: Dict) -> tuple:
+            mid = item["market_id"]
+            df = self.fetch_for_market(
+                mid,
+                item["title"],
+                item["clob_ids"],
+                interval=interval,
+                start_ts=start_ts,
+            )
+            return mid, df
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(_fetch_one, item): item for item in to_fetch}
+            for future in as_completed(futures):
+                try:
+                    market_id, df = future.result()
+                    if df is not None and not df.empty:
+                        cache_path = self.processed_dir / f"ts_{market_id}.csv"
+                        df.to_csv(cache_path, index=False)
+                        timeseries[market_id] = df
+                except Exception as exc:
+                    item = futures[future]
+                    logger.error("Failed to fetch %s: %s", item["market_id"], exc)
 
         logger.info(
             "Timeseries fetched for %d / %d markets.", len(timeseries), len(markets_df)
@@ -212,8 +257,8 @@ class TimeseriesFetcher:
         panel["date"] = pd.to_datetime(panel["date"])
         panel = panel.sort_values(["market_id", "date"]).reset_index(drop=True)
 
-        out_path = self.processed_dir / "timeseries_panel.parquet"
-        panel.to_parquet(out_path, index=False)
+        out_path = self.processed_dir / "timeseries_panel.csv"
+        panel.to_csv(out_path, index=False, date_format="%Y-%m-%d")
         logger.info("Saved timeseries panel (%d rows) to %s", len(panel), out_path)
 
         return panel
