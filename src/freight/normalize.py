@@ -191,7 +191,11 @@ def prepare_freight_panel(
         # Derived columns
         daily = compute_pct_change(daily)
         daily = compute_zscore(daily)
-        daily = normalise_to_baseline(daily, start, str(pd.Timestamp(start) + pd.Timedelta(days=90)))
+        # Use first 90 days of actual data as baseline (avoids NaN when data
+        # starts later than the study period).
+        actual_start = daily["date"].min()
+        baseline_end = str((actual_start + pd.Timedelta(days=90)).date())
+        daily = normalise_to_baseline(daily, str(actual_start.date()), baseline_end)
 
         result[name] = daily
         logger.info(

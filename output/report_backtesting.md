@@ -2,7 +2,7 @@
 
 *Historical signal validation: closed/resolved markets only*
 
-*Generated: 2026-02-21 21:49 UTC*
+*Generated: 2026-02-22 12:55 UTC*
 
 ---
 
@@ -20,9 +20,9 @@ This report covers **resolved Polymarket contracts** — markets where the outco
 - **Markets with timeseries data:** 5790
 - **Significant probability shift events detected:** 3614
 - **Market-freight pairings analysed:** 100
-- **Statistically significant correlations (p < 0.05):** 94
+- **Statistically significant correlations (p < 0.05):** 96
 - **Granger causality tests run:** 5
-- **Significant Granger results:** 0
+- **Significant Granger results:** 2
 - **Assessments in this report (backtesting):** 2338
 
 ---
@@ -30,20 +30,20 @@ This report covers **resolved Polymarket contracts** — markets where the outco
 ## Correlation Analysis
 
 ### Cross-Correlation Results
-- **Will the U.S. tariff rate on China be between 25% ** × BDI: r=0.512, lag=-23d (Freight leads, significant)
-- **Will Trump lower tariffs on Canada by July 31?** × FBX03: r=0.410, lag=18d (Polymarket LEADS, significant)
-- **Will the U.S. tariff rate on China be between 25% ** × FBX01: r=0.392, lag=15d (Polymarket LEADS, significant)
-- **Will the U.S. tariff rate on China be between 25% ** × FBX03: r=0.391, lag=-27d (Freight leads, significant)
-- **Will the U.S. agree to a trade deal with Vietnam b** × FBX01: r=0.388, lag=8d (Polymarket LEADS, significant)
+- **Will Trump lower tariffs on Canada by July 31?** × FBX11: r=0.505, lag=-11d (Freight leads, significant)
+- **Will Trump lower tariffs on Canada by July 31?** × FBX_GLOBAL: r=0.483, lag=-11d (Freight leads, significant)
+- **Will Trump lower tariffs on Canada by July 31?** × FBX03: r=0.470, lag=-11d (Freight leads, significant)
+- **Will Trump lower tariffs on Canada by July 31?** × FBX01: r=0.453, lag=-25d (Freight leads, significant)
+- **Will the U.S. tariff rate on China be between 25% ** × FBX_GLOBAL: r=0.438, lag=-21d (Freight leads, significant)
 
 ---
 
 ### Granger Causality
-- **Will Trump lower tariffs on Canada by December 31?** → FBX_GLOBAL: p=0.1316 at lag=3d (not significant)
-- **Will Trump lower tariffs on Canada by December 31?** → FBX01: p=0.1342 at lag=7d (not significant)
-- **Will Trump lower tariffs on Canada by December 31?** → BDI: p=0.2300 at lag=1d (not significant)
-- **Will Trump lower tariffs on Canada by December 31?** → FBX11: p=0.2566 at lag=8d (not significant)
-- **Will Trump lower tariffs on Canada by December 31?** → FBX03: p=0.2779 at lag=1d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX01: p=0.0283 at lag=7d (SIGNIFICANT)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX11: p=0.0357 at lag=14d (SIGNIFICANT)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX03: p=0.0826 at lag=7d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → BDI: p=0.1018 at lag=1d (not significant)
+- **Will Trump lower tariffs on Canada by December 31?** → FBX_GLOBAL: p=0.1853 at lag=7d (not significant)
 
 ---
 
@@ -55,7 +55,7 @@ These probability shifts occurred on **closed / resolved** Polymarket contracts.
 
 ## Supply Chain Intelligence Alerts
 
-*Generated 2026-02-21 21:49 UTC*
+*Generated 2026-02-22 12:55 UTC*
 
 Top 10 highest-impact signals:
 

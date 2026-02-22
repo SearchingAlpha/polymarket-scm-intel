@@ -191,14 +191,56 @@ def _generate_synthetic_fbx(index_name: str, base_value: float, volatility: floa
 # ---------------------------------------------------------------------------
 
 
+def _is_wci_format(columns: List[str]) -> bool:
+    """Detect Drewry WCI multi-lane format (multiple Shanghai route columns)."""
+    return sum(1 for c in columns if "shanghai" in c or "rotterdam" in c or "wci" in c) >= 2
+
+
+# Maps FBX index names to the substring that identifies the matching WCI column
+_WCI_LANE_KEYWORDS: Dict[str, str] = {
+    "FBX01": "los angeles",
+    "FBX03": "new york",
+    "FBX11": "rotterdam",
+}
+
+
+def _parse_wci_df(df: pd.DataFrame, date_col: str, index_name: str) -> pd.DataFrame:
+    """
+    Given a raw WCI DataFrame with multiple route columns, return a (date, value)
+    DataFrame for the requested index.  FBX_GLOBAL gets a simple average of all
+    numeric route columns; lane-specific indexes pick the matching column.
+    """
+    numeric_cols = [c for c in df.columns if c != date_col]
+    for c in numeric_cols:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    keyword = _WCI_LANE_KEYWORDS.get(index_name)
+    if keyword:
+        target = next((c for c in numeric_cols if keyword in c), None)
+        if target:
+            df = df[[date_col, target]].rename(columns={date_col: "date", target: "value"})
+        else:
+            logger.warning("WCI column for %s (keyword '%s') not found; using composite.", index_name, keyword)
+            df["value"] = df[numeric_cols].mean(axis=1)
+            df = df[[date_col, "value"]].rename(columns={date_col: "date"})
+    else:
+        # FBX_GLOBAL or unknown: composite average
+        df["value"] = df[numeric_cols].mean(axis=1)
+        df = df[[date_col, "value"]].rename(columns={date_col: "date"})
+
+    df["date"] = pd.to_datetime(df["date"], format="mixed", dayfirst=True)
+    df = df.dropna().sort_values("date").reset_index(drop=True)
+    return df
+
+
 def load_from_csv(index_name: str) -> Optional[pd.DataFrame]:
     """
     Load a freight index from a manually placed CSV in data/freight/.
 
-    Expected CSV format:
-        date,value
-        2024-01-05,1456.0
-        ...
+    Handles two formats automatically:
+    - Standard 2-column (date, value) — any source
+    - Drewry WCI multi-lane format (Date + 4 Shanghai route columns)
+    - Investing.com format (BOM, comma-formatted numbers, newest-first)
 
     Args:
         index_name: Key matching freight_indexes in market_mappings.yaml (e.g. 'BDI').
@@ -220,11 +262,19 @@ def load_from_csv(index_name: str) -> Optional[pd.DataFrame]:
         return None
 
     try:
-        df = pd.read_csv(path)
+        # utf-8-sig strips the BOM that investing.com adds to exported CSVs
+        df = pd.read_csv(path, encoding="utf-8-sig")
         df.columns = [c.strip().lower() for c in df.columns]
 
-        # Flexible column matching
         date_col = next((c for c in df.columns if "date" in c or "time" in c), None)
+
+        # --- Drewry WCI multi-lane format ---
+        if _is_wci_format(df.columns) and date_col:
+            result = _parse_wci_df(df, date_col, index_name)
+            logger.info("Loaded %d WCI rows for %s from %s", len(result), index_name, path)
+            return result
+
+        # --- Standard / investing.com single-value format ---
         value_col = next(
             (c for c in df.columns if c in ("value", "close", "price", "bdi", "fbx", "index")),
             None,
@@ -239,7 +289,11 @@ def load_from_csv(index_name: str) -> Optional[pd.DataFrame]:
 
         df = df[[date_col, value_col]].rename(columns={date_col: "date", value_col: "value"})
         df["date"] = pd.to_datetime(df["date"])
-        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        # Strip thousands-separator commas (investing.com exports "2,043.00")
+        df["value"] = pd.to_numeric(
+            df["value"].astype(str).str.replace(",", "", regex=False),
+            errors="coerce",
+        )
         df = df.dropna().sort_values("date").reset_index(drop=True)
         logger.info("Loaded %d rows from %s", len(df), path)
         return df
@@ -291,16 +345,51 @@ def fetch_bdi(use_synthetic_fallback: bool = True) -> Optional[pd.DataFrame]:
     return None
 
 
+def _try_extract_wci_lane(index_name: str) -> Optional[pd.DataFrame]:
+    """
+    Extract a lane-specific series from the WCI multi-column file (fbx_global.csv).
+
+    Used as a fallback when fbx01.csv / fbx03.csv / fbx11.csv are not present but
+    the user has provided the Drewry WCI multi-lane export as fbx_global.csv.
+    """
+    if index_name not in _WCI_LANE_KEYWORDS:
+        return None
+
+    path = _freight_dir() / "fbx_global.csv"
+    if not path.exists():
+        return None
+
+    try:
+        df = pd.read_csv(path, encoding="utf-8-sig")
+        df.columns = [c.strip().lower() for c in df.columns]
+        date_col = next((c for c in df.columns if "date" in c or "time" in c), None)
+        if date_col is None or not _is_wci_format(df.columns):
+            return None
+
+        result = _parse_wci_df(df, date_col, index_name)
+        if result.empty:
+            return None
+        logger.info(
+            "Extracted %s (%d rows) from WCI multi-lane file (fbx_global.csv).",
+            index_name, len(result),
+        )
+        return result
+    except Exception as exc:
+        logger.warning("Failed to extract WCI lane %s: %s", index_name, exc)
+        return None
+
+
 def fetch_fbx(
     index_name: str = "FBX_GLOBAL",
     use_synthetic_fallback: bool = True,
 ) -> Optional[pd.DataFrame]:
     """
-    Fetch a Freightos Baltic Index (FBX) series.
+    Fetch a Freightos Baltic Index (FBX) / WCI series.
 
     Tries:
     1. Manual CSV in data/freight/<filename>
-    2. Synthetic fallback
+    2. WCI lane extraction from fbx_global.csv (for FBX01, FBX03, FBX11)
+    3. Synthetic fallback
 
     Args:
         index_name: One of 'FBX_GLOBAL', 'FBX01', 'FBX03', 'FBX11'.
@@ -310,6 +399,11 @@ def fetch_fbx(
         DataFrame with [date, value] columns, or None.
     """
     df = load_from_csv(index_name)
+    if df is not None:
+        return df
+
+    # Extract lane data from WCI multi-column file if available
+    df = _try_extract_wci_lane(index_name)
     if df is not None:
         return df
 
